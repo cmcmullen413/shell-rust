@@ -5,7 +5,7 @@ use std::fs;
 use std::process::{Command, Stdio};
 use is_executable::IsExecutable;
 
-const BUILTINS: [&str;4] = ["exit", "echo", "type", "pwd"];
+const BUILTINS: [&str;5] = ["exit", "echo", "type", "pwd", "cd"];
 
 fn main() {
     // Begin looping
@@ -37,6 +37,7 @@ fn main() {
             "echo" => handle_echo(args),
             "type" => handle_type(args),
             "pwd" => handle_pwd(args),
+            "cd" => handle_cd(args),
             // If the command is not recognized
             _ => {
                 // First check if it is an executable
@@ -85,7 +86,7 @@ fn handle_echo(args: &[&str]) {
 fn handle_type(args: &[&str]) {
     // If no or too many arguments are provided, print the correct usage
     if args.len() != 1 {
-        println!("One argument expected. Correct usage: type arg");
+        println!("One argument expected. Correct usage: type command");
         return
     }
     // Redefine the arg as just one string
@@ -114,6 +115,22 @@ fn handle_pwd(args: &[&str]) {
 
     // Print the current directory out
     println!("{}", get_working_dir())
+}
+
+/// Handles the cd command with the passed arguments
+fn handle_cd(args: &[&str]) {
+    // If no or too many arguments are provided, print the correct usage
+    if args.len() != 1 {
+        println!("One argument expected. Correct usage: cd path");
+        return
+    }
+
+    // Get the first argument
+    let arg = args[0];
+
+    // Set the current directory to the passed path
+    env::set_current_dir(arg)
+        .expect("Could not change directory");
 }
 
 /// Checks if the provided argument is an executable in the environment PATH
