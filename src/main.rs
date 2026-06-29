@@ -17,18 +17,19 @@ fn main() {
         // Read the user's input into a buffer
         let mut buffer = String::new();
         io::stdin().read_line(&mut buffer).unwrap();
-        // Remove the tailing new line char  (or chars in case of windows)
+        // Trim the white space from the end
         let buffer = buffer.trim_end();
 
-        // If the command is "exit", break the loop
-        if buffer == "exit" {
-            break;
-        }
-
-        // Split the command and arguments
-        let splits = buffer.split(" ").collect::<Vec<&str>>();
-        let command = splits[0];
-        let args = &splits[1 ..];
+        // Split the command and arguments from the input
+        // First get just the command
+        let split = buffer.split(" ").collect::<Vec<&str>>();
+        let command = split[0];
+        // Remove the command from the front and pass the rest as a vec of chars to the parser
+        let args_vec = parse_args(buffer.strip_prefix(command).unwrap().trim_start().chars().collect());
+        // Convert the Strings to &str
+        let args_str: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
+        // Finally collect the args into an array of str
+        let args: &[&str] = &args_str;
 
         match command {
             // If the command is exit, break the outer loop
@@ -63,6 +64,43 @@ fn main() {
             }
         }
     }
+}
+
+/// Parses the arguments from the input string
+/// Fills the provided vector with the arguments
+fn parse_args(input: Vec<char>) -> Vec<String> {
+    // TODO: Implement quotes
+    // For now, it just splits by spaces
+
+    // Instantiate the output vec
+    let mut output = Vec::new();
+
+    // Iterate over all the characters and add them to a buffer
+    // Track whether we are inside of single quotes
+    let mut in_single_quotes = false;
+    // When a space is reached, if the buffer has chars, add them to the output
+    let mut buf = String::new();
+    for (i, &c) in input.iter().enumerate() {
+        // If a single quote is reached, flip the flag
+        if c == '\'' {
+            in_single_quotes = !in_single_quotes;
+            continue
+        }
+        // If a space is not reached and or we are in single quotes, just push the char to the buffer
+        if c != ' ' || in_single_quotes {
+            buf.push(c);
+            continue
+        }
+        // If a space is reached outside single quotes and the buffer is not empty, push it to the output and clear it
+        if !buf.is_empty() {
+            output.push(buf);
+            buf = String::new()
+        }
+    }
+    // At the end, if the buffer isn't empty, push it to the output as well
+    if !buf.is_empty() { output.push(buf) }
+    // Return output
+    output
 }
 
 /// Handles the echo command with the passed arguments
