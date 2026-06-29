@@ -73,12 +73,24 @@ fn parse_args(input: Vec<char>) -> Vec<String> {
     let mut output = Vec::new();
 
     // Iterate over all the characters and add them to a buffer
-    // Track whether we are inside of double or single quotes
+    // Track whether we are inside of double or single quotes or escaping a char
     let mut in_double_quotes = false;
     let mut in_single_quotes = false;
+    let mut escaped_char = false;
     // When a space is reached, if the buffer has chars, add them to the output
     let mut buf = String::new();
     for (i, &c) in input.iter().enumerate() {
+        // If the char was escaped, add it to the buffer no matter what the flip the flag back
+        if escaped_char {
+            buf.push(c);
+            escaped_char = false;
+            continue
+        }
+        // If a backslash is reached, set the escape flag
+        if c == '\\' {
+            escaped_char = true;
+            continue
+        }
         // If a double quote is reached, flip the flag
         // If this happens inside single quotes, print a message to the shell and return empty args
         if c == '"' {
