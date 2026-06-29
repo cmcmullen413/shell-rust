@@ -69,25 +69,35 @@ fn main() {
 /// Parses the arguments from the input string
 /// Fills the provided vector with the arguments
 fn parse_args(input: Vec<char>) -> Vec<String> {
-    // TODO: Implement quotes
-    // For now, it just splits by spaces
-
     // Instantiate the output vec
     let mut output = Vec::new();
 
     // Iterate over all the characters and add them to a buffer
-    // Track whether we are inside of single quotes
+    // Track whether we are inside of double or single quotes
+    let mut in_double_quotes = false;
     let mut in_single_quotes = false;
     // When a space is reached, if the buffer has chars, add them to the output
     let mut buf = String::new();
     for (i, &c) in input.iter().enumerate() {
-        // If a single quote is reached, flip the flag
-        if c == '\'' {
+        // If a double quote is reached, flip the flag
+        // If this happens inside single quotes, print a message to the shell and return empty args
+        if c == '"' {
+            if in_single_quotes {
+                println!("Incorrect quote syntax. Double quotes (\") cannot be inside single quotes (')");
+                return Vec::new()
+            }
+
+            in_double_quotes = !in_double_quotes;
+            continue
+        }
+
+        // If a single quote is reached, flip the flag if we're not inside double quotes
+        if c == '\'' && !in_double_quotes{
             in_single_quotes = !in_single_quotes;
             continue
         }
-        // If a space is not reached and or we are in single quotes, just push the char to the buffer
-        if c != ' ' || in_single_quotes {
+        // If a space is not reached and or we are in single quotes or double quotes, just push the char to the buffer
+        if c != ' ' || in_single_quotes || in_double_quotes {
             buf.push(c);
             continue
         }
