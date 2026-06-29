@@ -12,11 +12,21 @@ fn main() {
         let mut buffer = String::new();
         io::stdin().read_line(&mut buffer).unwrap();
         // Remove the tailing new line char  (or chars in case of windows)
-        let buffer = buffer.trim_end();
+        let buffer:String = buffer.trim_end().into();
 
         // If the command is "exit", break the loop
         if buffer == "exit" {
             break;
+        }
+
+        // If the command starts with "echo ", echo the input arguments
+        if buffer.starts_with("echo ") {
+            // Trim "echo " from the front of the buffer
+            let input = buffer.trim_start_matches("echo ");
+            // Print the input back out with a new line
+            println!("{}", input);
+
+            continue;
         }
 
         // If the command is not recognized:
