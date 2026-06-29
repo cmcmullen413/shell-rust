@@ -68,10 +68,12 @@ fn main() {
 /// Parses the command from the front of the input string
 /// Modifies the passed in string to contain just the command and returns the args as a new String
 fn parse_command(input: &mut String) -> String {
-    // Check if the first char is a single quote or a double quote
-    // If it is find the second one and split off the command from the front
+    // If the command starts with a single quote, the command is everything between it and the next single quote
+    //  nothing is escaped and all characters are treated as literals
+    // If the command starts with a double quote, the command is everything between in and the next
+    //  double quote, escaping characters the same way as when parsing args
     if input.starts_with(&['\'', '"']) {
-        // Get the prefix by removing the first char from the string
+        // Remove the first char from the string
         let prefix = input.remove(0);
 
         // Find the next occurrence of the prefix
@@ -79,7 +81,7 @@ fn parse_command(input: &mut String) -> String {
             // If one isn't found, clear the input and return an empty string
             //  also print an error message out
             None => {
-                println!("Incorrect use of quotes in command. To use quotes, command must be preceded and succeeded by the same type of quote (' or \")");
+                println!("Incorrect use of single quotes in command. To use quotes, command must be preceded and succeeded by the same type of quote (' or \")");
                 input.clear();
                 return String::new()
             },
@@ -87,15 +89,38 @@ fn parse_command(input: &mut String) -> String {
         };
 
         // Split the string at the found index
-        // The returned value will be the right half (args) and the String left behind will be the left half (command + a quote)
+        // The returned value will be the right half (args) and the String left behind will be the left half (command + ')
         let args = input.split_off(prefix_index);
         // Trim the quote left behind on the command
         input.pop();
+
+        // If the prefix was a double quote, find all the backslashes to remove them so the following chars are escaped
+        if prefix == '"' {
+            // Start a loop to find each occurrence of the backslash char
+            // If the following char is another backslash, set a flag to skip it
+            // Either way add the index to a list of chars to be removed at the end of the loop
+            // Each index is added to the front so when they are removed the indices are preserved for the ones to be removed after
+            let mut skip_flag = false;
+            let mut removals = Vec::new();
+            for (i, c) in input.chars().enumerate() {
+                if skip_flag {
+                    skip_flag = false;
+                    continue
+                }
+                if c == '\\' {
+                    skip_flag = true;
+                    removals.push(i)
+                }
+            }
+            // Now remove all the chars marked for removal
+            for i in removals { input.remove(i); }
+        }
+
         // Return the args
         return args
     }
 
-    // If it isn't, split the command with a space like normal
+    // If the command doesn't start with a quote, split the command with a space like normal
     // Split the string at the first space. The returned value will be the right half (args
     //  and the String left behind will be the left half (command)
 
