@@ -1,11 +1,14 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
+use std::env;
+use std::fs;
+use is_executable::IsExecutable;
 
-const BUILT_INS: [&str;3] = ["exit", "echo", "type"];
+const BUILTINS: [&str;3] = ["exit", "echo", "type"];
 
 fn main() {
     // Begin looping
-    loop {
+    'outer: loop {
         // Print the prompt
         print!("$ ");
         io::stdout().flush().unwrap();
@@ -49,11 +52,41 @@ fn main() {
                 continue;
             }
 
-            // If the argument is in the built ins list, print that it is a built in
-            if BUILT_INS.contains(&arg) {
+            // If the argument is in the builtins list, print that it is a built in
+            if BUILTINS.contains(&arg) {
                 println!("{} is a shell builtin", arg);
                 continue
             }
+
+            // If the arg is not a builtin, check if it is an executable in the path
+            //
+            // If this is a windows system, the file being looked for will be appended with .exe to search for an executable
+            // Create a new variable that will hold the actual file name on any system
+            let arg_executable = arg.to_owned() + env::consts::EXE_SUFFIX;
+            //
+            // Get the environment PATH var
+            let paths = env::var_os("PATH").unwrap();
+            for path in env::split_paths(&paths) {
+                // Get the contents of the directory
+                match fs::read_dir(path) {
+                    Ok(dir) => {
+                        // Check each file in the dir
+                        for file in dir {
+                            let file_name = file.as_ref().unwrap().file_name();
+                            // If the name matches the arg and it is executable, print that out
+                            if file_name.into_string().unwrap() == arg_executable && file.as_ref().unwrap().path().is_executable() {
+                                println!("{} is {}", arg, file.unwrap().path().display());
+                                // Continue the outer loop
+                                continue 'outer;
+                            }
+                            // Otherwise keep looking
+                        }
+                    }
+                    // If there is an error accessing the directory, just silence it
+                    Err(_error) => ()
+                }
+            }
+
             // Otherwise, print that the command is not valid
             println!("{}: not found", arg);
             continue;
