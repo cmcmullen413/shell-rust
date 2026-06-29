@@ -131,6 +131,7 @@ fn handle_cd(args: &[&str]) {
     // Set the current directory to the passed path
     match env::set_current_dir(arg) {
         Ok(_) => (),
+        // If the directory failed to change, print the error out
         Err(_) => {
             println!("cd: {arg}: No such file or directory")
         }
