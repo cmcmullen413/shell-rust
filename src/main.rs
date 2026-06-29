@@ -1,11 +1,11 @@
 #[allow(unused_imports)]
 use std::io::{self, Write, Read};
-use std::env::{self, split_paths};
+use std::env;
 use std::fs;
 use std::process::{Command, Stdio};
 use is_executable::IsExecutable;
 
-const BUILTINS: [&str;3] = ["exit", "echo", "type"];
+const BUILTINS: [&str;4] = ["exit", "echo", "type", "pwd"];
 
 fn main() {
     // Begin looping
@@ -36,6 +36,7 @@ fn main() {
             // The other builtin commands
             "echo" => handle_echo(args),
             "type" => handle_type(args),
+            "pwd" => handle_pwd(args),
             // If the command is not recognized
             _ => {
                 // First check if it is an executable
@@ -84,7 +85,7 @@ fn handle_echo(args: &[&str]) {
 fn handle_type(args: &[&str]) {
     // If no or too many arguments are provided, print the correct usage
     if args.len() != 1 {
-        println!("None or too many arguments provided. Correct usage: type arg");
+        println!("One argument expected. Correct usage: type arg");
         return
     }
     // Redefine the arg as just one string
@@ -104,6 +105,17 @@ fn handle_type(args: &[&str]) {
     println!("{}: not found", arg);
 }
 
+/// Handles the pwd command with the passed arguments
+fn handle_pwd(args: &[&str]) {
+    // If any arguments were passed, print the correct usage
+    if args.len() > 0 {
+        println!("No arguments expected. Correct usage: pwd")
+    }
+
+    // Print the current directory out
+    println!("{}", get_working_dir())
+}
+
 /// Checks if the provided argument is an executable in the environment PATH
 fn is_path_executable(arg: &str) -> String {
     // Get the actual name of the executable being looked for
@@ -112,7 +124,7 @@ fn is_path_executable(arg: &str) -> String {
 
     // Get the environmental PATH variable
     let paths = env::var_os("PATH").unwrap();
-    let paths = split_paths(&paths);
+    let paths = env::split_paths(&paths);
     // For each path in the PATH, check each of it's subfiles for the arg
     for path in paths {
         // Get the contents of the directory
@@ -128,10 +140,18 @@ fn is_path_executable(arg: &str) -> String {
                 }
             },
             // If the dir can't be read (usually because of permissions) just skip it
-            // TODO: Figure out why this happens and handle it
+            // TODO: Figure out why this happens and handle it properly. Seems to work fine however
             Err(_error) => ()
         }
     }
     // If no match was found, return an empty string
     String::new()
+}
+
+/// Gets the current directory of the process
+fn get_working_dir() -> String {
+    // Get the path buf of the current directory
+    let dir = env::current_dir().unwrap();
+    // Return the string form of it
+    dir.into_os_string().into_string().unwrap()
 }
