@@ -17,15 +17,14 @@ fn main() {
         // Read the user's input into a buffer
         let mut buffer = String::new();
         io::stdin().read_line(&mut buffer).unwrap();
-        // Trim the white space from the end
-        let buffer = buffer.trim_end();
+        // Trim the white space from the ends
+        let mut buffer= buffer.trim().to_string();
 
-        // Split the command and arguments from the input
-        // First get just the command
-        let split = buffer.split(" ").collect::<Vec<&str>>();
-        let command = split[0];
+        // Get the command from the front of the string and convert it to a &str
+        let args = parse_command(&mut buffer);
+        let command = buffer.as_str();
         // Remove the command from the front and pass the rest as a vec of chars to the parser
-        let args_vec = parse_args(buffer.strip_prefix(command).unwrap().trim_start().chars().collect());
+        let args_vec = parse_args(args.chars().collect());
         // Convert the Strings to &str
         let args_str: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
         // Finally collect the args into an array of str
@@ -60,10 +59,62 @@ fn main() {
 
                 // If it isn't
                 // Print it back out in the error message formated as -> {command}: command not found
-                println!("{}: command not found", buffer);
+                println!("{}: command not found", command);
             }
         }
     }
+}
+
+/// Parses the command from the front of the input string
+/// Modifies the passed in string to contain just the command and returns the args as a new String
+fn parse_command(input: &mut String) -> String {
+    // Check if the first char is a single quote or a double quote
+    // If it is find the second one and split off the command from the front
+    if input.starts_with(&['\'', '"']) {
+        // Get the prefix by removing the first char from the string
+        let prefix = input.remove(0);
+
+        // Find the next occurrence of the prefix
+        let prefix_index = match input.find(prefix) {
+            // If one isn't found, clear the input and return an empty string
+            //  also print an error message out
+            None => {
+                println!("Incorrect use of quotes in command. To use quotes, command must be preceded and succeeded by the same type of quote (' or \")");
+                input.clear();
+                return String::new()
+            },
+            Some(index) => index + 1
+        };
+
+        // Split the string at the found index
+        // The returned value will be the right half (args) and the String left behind will be the left half (command + a quote)
+        let args = input.split_off(prefix_index);
+        // Trim the quote left behind on the command
+        input.pop();
+        // Return the args
+        return args
+    }
+
+    // If it isn't, split the command with a space like normal
+    // Split the string at the first space. The returned value will be the right half (args
+    //  and the String left behind will be the left half (command)
+
+    // Get the index of the first space
+    let space_index = match input.find(" ") {
+        // If there isn't one leave the string alone and return an empty string as the args
+        None => {
+            return String::new()
+        },
+        Some(index) => index + 1
+    };
+
+    // Split off the command
+    let args =input.split_off(space_index);
+    // Trim the space left behind on the command
+    input.pop();
+
+    // Return the command
+    args
 }
 
 /// Parses the arguments from the input string
