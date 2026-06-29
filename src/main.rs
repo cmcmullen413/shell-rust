@@ -79,7 +79,7 @@ fn parse_args(input: Vec<char>) -> Vec<String> {
     let mut escaped_char = false;
     // When a space is reached, if the buffer has chars, add them to the output
     let mut buf = String::new();
-    for (i, &c) in input.iter().enumerate() {
+    for &c in input.iter() {
         // If the char was escaped, add it to the buffer no matter what the flip the flag back
         if escaped_char {
             buf.push(c);
@@ -87,18 +87,12 @@ fn parse_args(input: Vec<char>) -> Vec<String> {
             continue
         }
         // If a backslash is reached, set the escape flag
-        if c == '\\' {
+        if c == '\\' && !in_single_quotes {
             escaped_char = true;
             continue
         }
         // If a double quote is reached, flip the flag
-        // If this happens inside single quotes, print a message to the shell and return empty args
-        if c == '"' {
-            if in_single_quotes {
-                println!("Incorrect quote syntax. Double quotes (\") cannot be inside single quotes (')");
-                return Vec::new()
-            }
-
+        if c == '"' && !in_single_quotes{
             in_double_quotes = !in_double_quotes;
             continue
         }
