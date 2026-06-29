@@ -1,6 +1,8 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
+const BUILT_INS: [&str;3] = ["exit", "echo", "type"];
+
 fn main() {
     // Begin looping
     loop {
@@ -19,13 +21,41 @@ fn main() {
             break;
         }
 
-        // If the command starts with "echo ", echo the input arguments
-        if buffer.starts_with("echo ") {
+        // If the command starts with "echo", echo the input arguments
+        // If there are no input args, print the correct usage
+        if buffer.starts_with("echo") {
             // Trim "echo " from the front of the buffer
-            let input = buffer.trim_start_matches("echo ");
-            // Print the input back out with a new line
-            println!("{}", input);
+            let args = buffer.trim_start_matches("echo").trim_start();
 
+            // If args is empty, print the correct usage of echo
+            if args.is_empty() {
+                println!("No arguments provided. Correct usage: echo args");
+                continue;
+            }
+
+            // Print the input back out with a new line
+            println!("{}", args);
+            continue;
+        }
+
+        // If the command starts with "type ", return what type of command the argument is
+        if buffer.starts_with("type") {
+            // Trim "type " from the front
+            let arg = buffer.trim_start_matches("type").trim_start();
+
+            // If no argument is provided, print the correct usage
+            if arg.is_empty() {
+                println!("No argument provided. Correct usage: type arg");
+                continue;
+            }
+
+            // If the argument is in the built ins list, print that it is a built in
+            if BUILT_INS.contains(&arg) {
+                println!("{} is a shell builtin", arg);
+                continue
+            }
+            // Otherwise, print that the command is not valid
+            println!("{}: not found", arg);
             continue;
         }
 
