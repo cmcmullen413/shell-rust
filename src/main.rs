@@ -126,14 +126,20 @@ fn handle_cd(args: &[&str]) {
     }
 
     // Get the first argument
-    let arg = args[0];
+    let mut arg = args[0].to_string();
+
+    // If the path starts with '~', replace it with the home directory
+    if arg.starts_with("~") {
+        arg = env::home_dir().expect("Could not get home directory").to_str().unwrap().to_owned()
+            + arg.strip_prefix("~").unwrap()
+    }
 
     // Set the current directory to the passed path
-    match env::set_current_dir(arg) {
+    match env::set_current_dir(&arg) {
         Ok(_) => (),
         // If the directory failed to change, print the error out
         Err(_) => {
-            println!("cd: {arg}: No such file or directory")
+            println!("cd: {}: No such file or directory", arg)
         }
     }
 }
