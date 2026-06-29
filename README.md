@@ -1,35 +1,138 @@
-[![progress-banner](https://backend.codecrafters.io/progress/shell/5fb8be58-25aa-4dec-80c3-2f4db8bcbbb4)](https://app.codecrafters.io/users/cmcmullen413?r=2qF)
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
 
-This is a starting point for Rust solutions to the
-["Build Your Own Shell" Challenge](https://app.codecrafters.io/courses/shell/overview).
+<h3 align="center">Rust Shell</h3>
 
-In this challenge, you'll build your own POSIX compliant shell that's capable of
-interpreting shell commands, running external programs and builtin commands like
-cd, pwd, echo and more. Along the way, you'll learn about shell command parsing,
-REPLs, builtin commands, and more.
+  <p align="center">
+    A simple shell program written entirely in rust
+    <br />
+  </p>
+</div>
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
 
-# Passing the first stage
 
-The entry point for your `shell` implementation is in `src/main.rs`. Study and
-uncomment the relevant code, then run the command below to execute the tests on
-our servers:
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
 
-```sh
-codecrafters submit
-```
 
-Time to move on to the next stage!
+### Built With
 
-# Stage 2 & beyond
+* [![Rust][Rust-Lang.org]][Rust-url]
 
-Note: This section is for stages 2 and beyond.
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-1. Ensure you have `cargo (1.96)` installed locally
-1. Run `./your_program.sh` to run your program, which is implemented in
-   `src/main.rs`. This command compiles your Rust project, so it might be slow
-   the first time you run it. Subsequent runs will be fast.
-1. Run `codecrafters submit` to submit your solution to CodeCrafters. Test
-   output will be streamed to your terminal.
+
+
+<!-- GETTING STARTED -->
+## Getting Started
+
+TODO
+
+This is an example of how you may give instructions on setting up your project locally.
+To get a local copy up and running follow these simple example steps.
+
+### Prerequisites
+
+This is an example of how to list things you need to use the software and how to install them.
+* rustup with rustc and cargo
+  ```sh
+  rustup upgrade
+  ```
+
+### Usage
+
+1. Run the program
+   ```sh
+   cargo run
+   ```
+2. Use it like normal shell
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- ROADMAP -->
+## Roadmap
+
+TODO
+
+- [ ] Quoting
+- [ ] Redirection
+- [ ] Command Completion
+- [ ] Filename Completion
+- [ ] Programmable Completion
+- [ ] Background Jobs
+- [ ] Pipelines
+- [ ] History
+- [ ] History Persistence
+- [ ] Parameter Expansion
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+<!-- LICENSE -->
+## License
+
+Distributed under the MIT License. See `LICENSE.txt` for more information.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- CONTACT -->
+## Contact
+
+Your Name - cmcmullen413@gmail.com
+
+Project Link: [https://github.com/cmcmullen413/shell-rust](https://github.com/cmcmullen413/shell-rust)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/cmcmullen413/shell-rust.svg?style=for-the-badge
+[contributors-url]: https://github.com/cmcmullen413/shell-rust/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/cmcmullen413/shell-rust.svg?style=for-the-badge
+[forks-url]: https://github.com/cmcmullen413/shell-rust/network/members
+[stars-shield]: https://img.shields.io/github/stars/cmcmullen413/shell-rust.svg?style=for-the-badge
+[stars-url]: https://github.com/cmcmullen413/shell-rust/stargazers
+[issues-shield]: https://img.shields.io/github/issues/cmcmullen413/shell-rust.svg?style=for-the-badge
+[issues-url]: https://github.com/cmcmullen413/shell-rust/issues
+[license-shield]: https://img.shields.io/github/license/cmcmullen413/shell-rust.svg?style=for-the-badge
+[license-url]: https://github.com/cmcmullen413/shell-rust/blob/master/LICENSE.txt
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://linkedin.com/in/caleb-mcmullen-102953265
+[product-screenshot]: images/screenshot.png
+<!-- Shields.io badges. You can a comprehensive list with many more badges at: https://github.com/inttter/md-badges -->
+[Rust-Lang.org]: https://img.shields.io/badge/Rust-%23000000.svg?e&logo=rust&logoColor=white
+[Rust-url]: https://rust-lang.org
