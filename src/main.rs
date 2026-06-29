@@ -1,8 +1,8 @@
 #[allow(unused_imports)]
-use std::io::{self, Write};
-use std::env;
-use std::env::split_paths;
+use std::io::{self, Write, Read};
+use std::env::{self, split_paths};
 use std::fs;
+use std::process::{Command, Stdio};
 use is_executable::IsExecutable;
 
 const BUILTINS: [&str;3] = ["exit", "echo", "type"];
@@ -36,8 +36,26 @@ fn main() {
             // The other builtin commands
             "echo" => handle_echo(args),
             "type" => handle_type(args),
-            // If the command is not recognized:
+            // If the command is not recognized
             _ => {
+                // First check if it is an executable
+                // If it is
+                if !is_path_executable(&command).is_empty() {
+                    // Create a child process with the input and output connected to this parent
+                    // This will run the process and then return the status after it finishes (Which isn't used)
+                    Command::new(command)
+                        .args(args)
+                        .stdin(Stdio::inherit())
+                        .stdout(Stdio::inherit())
+                        .stderr(Stdio::inherit())
+                        .status()
+                        .expect("Failed to execute command");
+
+                    // Once the child has finished, get a new command from the user
+                    continue
+                }
+
+                // If it isn't
                 // Print it back out in the error message formated as -> {command}: command not found
                 println!("{}: command not found", buffer);
             }
@@ -110,6 +128,7 @@ fn is_path_executable(arg: &str) -> String {
                 }
             },
             // If the dir can't be read (usually because of permissions) just skip it
+            // TODO: Figure out why this happens and handle it
             Err(_error) => ()
         }
     }
