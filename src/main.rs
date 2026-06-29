@@ -129,8 +129,12 @@ fn handle_cd(args: &[&str]) {
     let arg = args[0];
 
     // Set the current directory to the passed path
-    env::set_current_dir(arg)
-        .expect("Could not change directory");
+    match env::set_current_dir(arg) {
+        Ok(_) => (),
+        Err(_) => {
+            println!("cd: {arg}: No such file or directory")
+        }
+    }
 }
 
 /// Checks if the provided argument is an executable in the environment PATH
