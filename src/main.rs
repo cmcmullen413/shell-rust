@@ -5,6 +5,7 @@ use std::fs;
 use std::fs::{File, OpenOptions};
 use std::path::Path;
 use std::process::{Command, Stdio};
+use std::ptr::null;
 use is_executable::IsExecutable;
 
 const BUILTINS: [&str;5] = ["exit", "echo", "type", "pwd", "cd"];
@@ -371,15 +372,37 @@ fn handle_cd(args: &[&str], redirect_info: RedirectInfo) {
 
 /// Handles non builtin command calls with the passed arguments
 fn handle_non_builtin(command: &str, args: &[&str], redirect_info: RedirectInfo) {
-    // TODO: Make work with redirection
-
-    // Create a child process with the input and output connected to this parent
+    // Create a child process with the input connected to this parent and the out and err connected to this or a file depending
     // This will run the process and then return the status after it finishes (Which isn't used)
+
+    // If either stdout or stderr are redirecting, open or create the file
+    let mut stdout = Stdio::inherit();
+    let mut stderr = Stdio::inherit();
+
+    match redirect_info.stdout || redirect_info.stderr {
+        true => {
+            // Try to open the file in the correct append/overwrite mode
+            // If it doesn't exist, create a new file instead
+            let file = match OpenOptions::new().write(true).append(redirect_info.append).open(&redirect_info.destination) {
+                Ok(file) => file,
+                Err(_) => File::create(&redirect_info.destination).unwrap()
+            };
+
+            if redirect_info.stdout {
+                stdout = Stdio::from(file.try_clone().unwrap())
+            }
+            if redirect_info.stderr {
+                stderr = Stdio::from(file)
+            }
+        },
+        false => ()
+    }
+
     Command::new(command)
         .args(args)
         .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
+        .stdout(stdout)
+        .stderr(stderr)
         .status()
         .expect("Failed to execute command");
 }
