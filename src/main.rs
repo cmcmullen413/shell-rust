@@ -5,7 +5,6 @@ use std::fs;
 use std::fs::{File, OpenOptions};
 use std::path::Path;
 use std::process::{Command, Stdio};
-use std::ptr::null;
 use is_executable::IsExecutable;
 
 const BUILTINS: [&str;5] = ["exit", "echo", "type", "pwd", "cd"];
@@ -144,6 +143,12 @@ fn parse_redirect(input: String, redirect_info: &mut RedirectInfo) -> String {
             let file = output.split_off(end_index);
             // Set the file handle in the redirection info
             redirect_info.destination = file.trim().to_string();
+
+            // If any redirection is specified, the file should be created
+            //  even if nothing will actually be printed to it
+            if !Path::is_file(Path::new(&redirect_info.destination)) {
+                File::create_new(&redirect_info.destination).unwrap();
+            }
 
             // Remove the rest of the redirection chars and return the rest of the input string
             let _ = output.split_off(start_index);
