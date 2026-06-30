@@ -2,10 +2,21 @@
 use std::io::{self, Write, Read};
 use std::env;
 use std::fs;
+use std::fs::{File, OpenOptions};
+use std::path::Path;
 use std::process::{Command, Stdio};
 use is_executable::IsExecutable;
 
 const BUILTINS: [&str;5] = ["exit", "echo", "type", "pwd", "cd"];
+
+// Struct for storing information about redirecting the terminal output
+struct RedirectInfo {
+    stdout: bool,
+    stderr: bool,
+    destination: String,
+    append: bool
+}
+
 
 fn main() {
     // Begin looping
@@ -14,60 +25,138 @@ fn main() {
         print!("$ ");
         io::stdout().flush().unwrap();
 
-        // Read the user's input into a buffer
-        let mut buffer = String::new();
-        io::stdin().read_line(&mut buffer).unwrap();
-        // Trim the white space from the ends
-        let mut buffer= buffer.trim().to_string();
+        // Get the users input and parse it into a command and args
+        let mut command_string = String::new();
+        let mut args_string = Vec::new();
+        // Also gets whether the output should be redirected or not and in what way
+        let mut redirect_info = RedirectInfo {
+            stdout: false,
+            stderr: false,
+            destination: String::new(),
+            append: false
+        };
 
-        // Get the command from the front of the string and convert it to a &str
-        let args = parse_command(&mut buffer);
-        let command = buffer.as_str();
-        // Remove the command from the front and pass the rest as a vec of chars to the parser
-        let args_vec = parse_args(args.chars().collect());
-        // Convert the Strings to &str
-        let args_str: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
-        // Finally collect the args into an array of str
+        parse_input(&mut command_string, &mut args_string, &mut redirect_info);
+        // Convert the Strings into &str to pass to the rest of the functions
+        let command = command_string.as_str();
+        let args_str: Vec<&str> = args_string.iter().map(|s| s.as_str()).collect();
         let args: &[&str] = &args_str;
 
         match command {
             // If the command is exit, break the outer loop
             "exit" => break,
             // The other builtin commands
-            "echo" => handle_echo(args),
-            "type" => handle_type(args),
-            "pwd" => handle_pwd(args),
-            "cd" => handle_cd(args),
+            "echo" => handle_echo(&args, redirect_info),
+            "type" => handle_type(&args, redirect_info),
+            "pwd" => handle_pwd(&args, redirect_info),
+            "cd" => handle_cd(&args, redirect_info),
             // If the command is not recognized
             _ => {
                 // First check if it is an executable
-                // If it is
-                if !is_path_executable(&command).is_empty() {
-                    // Create a child process with the input and output connected to this parent
-                    // This will run the process and then return the status after it finishes (Which isn't used)
-                    Command::new(command)
-                        .args(args)
-                        .stdin(Stdio::inherit())
-                        .stdout(Stdio::inherit())
-                        .stderr(Stdio::inherit())
-                        .status()
-                        .expect("Failed to execute command");
-
-                    // Once the child has finished, get a new command from the user
-                    continue
+                match !is_path_executable(&command).is_empty() {
+                    true => {
+                        // If it is call the method to create and handle the child process
+                        handle_non_builtin(&command, &args, redirect_info);
+                        // Once the child has finished, get a new command from the user
+                        continue
+                    },
+                    false => {
+                        // If it isn't
+                        // Print it back out in the error message formated as -> {command}: command not found
+                        println!("{}: command not found", command);
+                    }
                 }
-
-                // If it isn't
-                // Print it back out in the error message formated as -> {command}: command not found
-                println!("{}: command not found", command);
             }
         }
     }
 }
 
+/// Parses user input and fills the provided command and args outputs
+/// Returns whether the parsing was successful
+fn parse_input(command_out: &mut String, args_out: &mut Vec<String>, redirect_info: &mut RedirectInfo) -> bool{
+    // Read the user's input into a buffer
+    let mut buffer = String::new();
+    io::stdin().read_line(&mut buffer).unwrap();
+    // Trim the white space from the ends
+    let buffer= buffer.trim().to_string();
+
+    // Flag to track the success of the parsing
+    let mut success = true;
+
+    // Figure out if the output needs to be redirected in any way
+    let mut buffer = parse_redirect(buffer, redirect_info);
+
+    // Get the command from the front of the string and put it into command_out
+    let args = parse_command(&mut buffer, &mut success);
+    command_out.push_str(&buffer);
+    // Parse the remaining argument string and put it into args_out
+    let mut args_vec = parse_args(args.chars().collect());
+    args_out.append(&mut args_vec);
+
+    success
+}
+
+/// Parses any redirects in the input
+fn parse_redirect(input: String, redirect_info: &mut RedirectInfo) -> String {
+    // Loop through looking for a '>' char
+    // If one is found, change the values of redirect info accordingly
+    //  then return the input with the redirection part cut off
+
+    // Convert the input into a vec of chars to be iterated over
+    let input_vec:Vec<char> = input.chars().collect();
+
+    // What output goes to the file can depend on this
+    for (i, &c) in input_vec.iter().enumerate() {
+        if c == '>' {
+            // Keep a variable of where the end needs to be cut off to pass back out to the other parsers
+            let mut start_index = i;
+            // Also keep where the end of the redirection characters are to cut off and get the output file
+            let mut end_index = i + 1;
+
+            // If the last char was 2 or &, redirect stderr
+            if input_vec[i-1] == '2' || input_vec[i-1] == '&' {
+                // Move the start index
+                start_index -= 1;
+
+                // Set the stderr redirect flag in redirect info
+                redirect_info.stderr = true;
+            }
+            // If the last char was anything but 2, redirect stdout
+            if input_vec[i-1] != '2' {
+                // Move the start index back one if the char was one of the recognized ones (1 or &)
+                if input_vec[i-1] == '1' || input_vec[i-1] == '&' { start_index -= 1; }
+
+                // Set the stdout redirection flag in redirection info
+                redirect_info.stdout = true;
+            }
+            // If the next char is also '>' set the append mode
+            if input_vec[i+1] == '>' {
+                redirect_info.append = true;
+                // Move the end index back by one
+                end_index += 1;
+            }
+
+            // Create a copy of input to mutate into the output string
+            let mut output = String::clone(&input);
+
+            // Get the file to redirect the output to
+            let file = output.split_off(end_index);
+            // Set the file handle in the redirection info
+            redirect_info.destination = file.trim().to_string();
+
+            // Remove the rest of the redirection chars and return the rest of the input string
+            let _ = output.split_off(start_index);
+            return output
+        }
+    }
+
+    // If there is no redirection, just return input
+    input
+}
+
 /// Parses the command from the front of the input string
 /// Modifies the passed in string to contain just the command and returns the args as a new String
-fn parse_command(input: &mut String) -> String {
+fn parse_command(input: &mut String, success: &mut bool) -> String {
     // If the command starts with a single quote, the command is everything between it and the next single quote
     //  nothing is escaped and all characters are treated as literals
     // If the command starts with a double quote, the command is everything between in and the next
@@ -82,6 +171,7 @@ fn parse_command(input: &mut String) -> String {
             //  also print an error message out
             None => {
                 println!("Incorrect use of single quotes in command. To use quotes, command must be preceded and succeeded by the same type of quote (' or \")");
+                *success = false;
                 input.clear();
                 return String::new()
             },
@@ -196,62 +286,67 @@ fn parse_args(input: Vec<char>) -> Vec<String> {
 }
 
 /// Handles the echo command with the passed arguments
-fn handle_echo(args: &[&str]) {
+fn handle_echo(args: &[&str], redirect_info: RedirectInfo) {
     // If there are no arguments, print the correct usage
     if args.len() == 0 {
-        println!("No arguments provided. Correct usage: echo arg1 arg2 ...");
+        print_error("No arguments provided. Correct usage: echo arg1 arg2 ...\n", redirect_info);
         return
     }
     // Otherwise, print out all the arguments
+    let mut output = String::new();
     // Add the first one outside the loop so the spaces can be added before the rest
-    print!("{}", args[0]);
+    output.push_str(&args[0]);
     for arg in args.iter().skip(1) {
-        print!(" {}", arg)
+        output.push_str(&format!(" {}", arg));
     }
-    // Print the new line. This also flushes the buffer
-    println!()
+    // Append a newline char
+    output.push('\n');
+
+    print_out(output.as_str(), redirect_info);
 }
 
 /// Handles the type command with the passed arguments
-fn handle_type(args: &[&str]) {
+fn handle_type(args: &[&str], redirect_info: RedirectInfo) {
     // If no or too many arguments are provided, print the correct usage
     if args.len() != 1 {
-        println!("One argument expected. Correct usage: type command");
+        print_error("One argument expected. Correct usage: type command\n", redirect_info);
         return
     }
     // Redefine the arg as just one string
     let arg = args[0];
     // Check if the arg is in the builtins list. If it is, print that message out
     if BUILTINS.contains(&arg) {
-        println!("{} is a shell builtin", arg);
+        print_out(&format!("{} is a shell builtin\n", arg), redirect_info);
         return
     }
     // Check if the arg is an executable in the environment PATH
     let path = is_path_executable(&arg);
     if !path.is_empty() {
-        println!("{} is {}", arg, path);
+        print_out(&format!("{} is {}\n", arg, path), redirect_info);
         return
     }
     // Otherwise, print that the command wasn't found
-    println!("{}: not found", arg);
+    print_out(&format!("{}: not found\n", arg), redirect_info);
 }
 
 /// Handles the pwd command with the passed arguments
-fn handle_pwd(args: &[&str]) {
+fn handle_pwd(args: &[&str], redirect_info: RedirectInfo) {
     // If any arguments were passed, print the correct usage
     if args.len() > 0 {
-        println!("No arguments expected. Correct usage: pwd")
+        print_error("No arguments expected. Correct usage: pwd\n", redirect_info);
+        return
     }
 
     // Print the current directory out
-    println!("{}", get_working_dir())
+    print_out(&format!("{}\n", get_working_dir()), redirect_info);
+
 }
 
 /// Handles the cd command with the passed arguments
-fn handle_cd(args: &[&str]) {
+fn handle_cd(args: &[&str], redirect_info: RedirectInfo) {
     // If no or too many arguments are provided, print the correct usage
     if args.len() != 1 {
-        println!("One argument expected. Correct usage: cd path");
+        print_error("One argument expected. Correct usage: cd path\n", redirect_info);
         return
     }
 
@@ -269,9 +364,61 @@ fn handle_cd(args: &[&str]) {
         Ok(_) => (),
         // If the directory failed to change, print the error out
         Err(_) => {
-            println!("cd: {}: No such file or directory", arg)
+            print_out(&format!("cd: {}: No such file or directory\n", arg), redirect_info);
         }
     }
+}
+
+/// Handles non builtin command calls with the passed arguments
+fn handle_non_builtin(command: &str, args: &[&str], redirect_info: RedirectInfo) {
+    // TODO: Make work with redirection
+
+    // Create a child process with the input and output connected to this parent
+    // This will run the process and then return the status after it finishes (Which isn't used)
+    Command::new(command)
+        .args(args)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .status()
+        .expect("Failed to execute command");
+}
+
+fn print_error(message: &str, redirect_info: RedirectInfo) {
+    // If stderr is redirected, pass the message along
+    if redirect_info.stderr {
+        print_to_file(message, redirect_info.destination.as_str(), redirect_info.append);
+        return
+    }
+    // Otherwise, print it to stdout
+    print!("{}", message)
+}
+
+fn print_out(message: &str, redirect_info: RedirectInfo) {
+    // If stdout is redirected, pass the message along
+    if redirect_info.stdout {
+        print_to_file(message, redirect_info.destination.as_str(), redirect_info.append);
+        return
+    }
+    // Otherwise, print it to stdout
+    print!("{}", message)
+}
+
+fn print_to_file(message: &str, file_path: &str, append: bool) {
+    // Get the actual path of the passed in file path string
+    let path = Path::new(file_path);
+
+    // Try to open the file in the correct append/overwrite mode
+    // If it doesn't exist, create a new file instead
+    let mut file = match OpenOptions::new().write(true).append(append).open(path) {
+        Ok(file) => file,
+        Err(_) => File::create(path).unwrap()
+    };
+
+    if let Err(e) = write!(file, "{}", message) {
+        println!("Couldn't write to file: {}", e);
+    }
+
 }
 
 /// Checks if the provided argument is an executable in the environment PATH
